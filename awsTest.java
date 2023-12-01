@@ -42,6 +42,11 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.ec2.model.DescribeKeyPairsRequest;
 import com.amazonaws.services.ec2.model.DescribeKeyPairsResult;
 import com.amazonaws.services.ec2.model.KeyPairInfo;
+import com.amazonaws.services.ec2.model.CreateKeyPairRequest;
+import com.amazonaws.services.ec2.model.CreateKeyPairResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class awsTest {
 
@@ -85,6 +90,7 @@ public class awsTest {
 			System.out.println("  5. stop instance                6. create instance        ");
 			System.out.println("  7. reboot instance              8. list images            ");
 			System.out.println("  9. security group information   10. key pair list         ");
+			System.out.println("  11. make key pair               10. key pair list         ");
 			System.out.println("                                 99. quit                   ");
 			System.out.println("------------------------------------------------------------");
 			
@@ -99,6 +105,7 @@ public class awsTest {
 			
 
 			String instance_id = "";
+			String keyPair_id = "";
 
 			switch(number) {
 			case 1: 
@@ -159,6 +166,15 @@ public class awsTest {
 			case 10:
 				keyPairList();
 				break;
+			case 11:
+				System.out.print("Enter keypair id: ");
+				if(id_string.hasNext())
+					keyPair_id = id_string.nextLine();
+
+				if(!keyPair_id.isBlank())
+					makeKeyPair(keyPair_id);
+				break;
+
 
 
 			case 99: 
@@ -398,6 +414,40 @@ public class awsTest {
 				System.out.println("Key Pair Fingerprint: " + keyPairInfo.getKeyFingerprint());
 				System.out.println("----------------------------------");
 			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void makeKeyPair(String keyPairName) {
+
+		// 키페어 생성 요청 생성
+		CreateKeyPairRequest createKeyPairRequest = new CreateKeyPairRequest()
+				.withKeyName(keyPairName);
+
+		try {
+			// 키페어 생성
+			CreateKeyPairResult keyPairResult = ec2.createKeyPair(createKeyPairRequest);
+
+			// 키페어의 키 값 가져오기
+			String privateKey = keyPairResult.getKeyPair().getKeyMaterial();
+
+			// 키페어 키 값을 파일로 저장 (옵션)
+			savePrivateKeyToFile(privateKey, "/home/seyeon/Downloads/" + keyPairName + ".pem");
+
+			System.out.println("Key Pair created successfully.");
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private static void savePrivateKeyToFile(String privateKey, String filePath) {
+		try {
+			Path path = Paths.get(filePath);
+			Files.write(path, privateKey.getBytes());
+			System.out.println("Private key saved to: " + filePath);
 
 		} catch (Exception e) {
 			e.printStackTrace();
