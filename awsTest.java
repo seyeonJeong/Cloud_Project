@@ -9,6 +9,10 @@ package aws;
 */
 import java.util.Iterator;
 import java.util.Scanner;
+
+import com.amazonaws.services.ec2.model.DescribeSecurityGroupsRequest;
+import com.amazonaws.services.ec2.model.DescribeSecurityGroupsResult;
+import com.amazonaws.services.ec2.model.SecurityGroup;
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
@@ -76,6 +80,7 @@ public class awsTest {
 			System.out.println("  3. start instance               4. available regions      ");
 			System.out.println("  5. stop instance                6. create instance        ");
 			System.out.println("  7. reboot instance              8. list images            ");
+			System.out.println("  9. security group information   10. list images            ");
 			System.out.println("                                 99. quit                   ");
 			System.out.println("------------------------------------------------------------");
 			
@@ -144,6 +149,12 @@ public class awsTest {
 			case 8: 
 				listImages();
 				break;
+			case 9:
+				securityGroupInfo();
+				break;
+
+
+
 
 			case 99: 
 				System.out.println("bye!");
@@ -331,7 +342,7 @@ public class awsTest {
 		DescribeImagesRequest request = new DescribeImagesRequest();
 		ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider();
 
-		request.getFilters().add(new Filter().withName("name").withValues("htcondor-slave-image"));
+		request.getFilters().add(new Filter().withName("name").withValues("aws-htcondor-slave"));
 		request.setRequestCredentialsProvider(credentialsProvider);
 
 		DescribeImagesResult results = ec2.describeImages(request);
@@ -341,6 +352,31 @@ public class awsTest {
 					images.getImageId(), images.getName(), images.getOwnerId());
 		}
 
+	}
+
+	public static void securityGroupInfo(){
+		// 보안 그룹 목록 조회 요청 생성
+		DescribeSecurityGroupsRequest describeSecurityGroupsRequest = new DescribeSecurityGroupsRequest();
+
+		try {
+			// 보안 그룹 목록 조회
+			DescribeSecurityGroupsResult securityGroupsResult =
+					ec2.describeSecurityGroups(describeSecurityGroupsRequest);
+
+			// 조회 결과 출력
+			for (SecurityGroup securityGroup : securityGroupsResult.getSecurityGroups()) {
+				System.out.println("Security Group Id: " + securityGroup.getGroupId());
+				System.out.println("Security Group Name: " + securityGroup.getGroupName());
+				System.out.println("Description: " + securityGroup.getDescription());
+				System.out.println("VPC Id: " + securityGroup.getVpcId());
+				System.out.println("Inbound Rules: " + securityGroup.getIpPermissions());
+				System.out.println("Outbound Rules: " + securityGroup.getIpPermissionsEgress());
+				System.out.println("----------------------------------");
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 }
 	
