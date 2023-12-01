@@ -38,6 +38,10 @@ import com.amazonaws.services.ec2.model.DescribeImagesRequest;
 import com.amazonaws.services.ec2.model.DescribeImagesResult;
 import com.amazonaws.services.ec2.model.Image;
 import com.amazonaws.services.ec2.model.Filter;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.services.ec2.model.DescribeKeyPairsRequest;
+import com.amazonaws.services.ec2.model.DescribeKeyPairsResult;
+import com.amazonaws.services.ec2.model.KeyPairInfo;
 
 public class awsTest {
 
@@ -80,7 +84,7 @@ public class awsTest {
 			System.out.println("  3. start instance               4. available regions      ");
 			System.out.println("  5. stop instance                6. create instance        ");
 			System.out.println("  7. reboot instance              8. list images            ");
-			System.out.println("  9. security group information   10. list images            ");
+			System.out.println("  9. security group information   10. key pair list         ");
 			System.out.println("                                 99. quit                   ");
 			System.out.println("------------------------------------------------------------");
 			
@@ -152,8 +156,9 @@ public class awsTest {
 			case 9:
 				securityGroupInfo();
 				break;
-
-
+			case 10:
+				keyPairList();
+				break;
 
 
 			case 99: 
@@ -371,6 +376,26 @@ public class awsTest {
 				System.out.println("VPC Id: " + securityGroup.getVpcId());
 				System.out.println("Inbound Rules: " + securityGroup.getIpPermissions());
 				System.out.println("Outbound Rules: " + securityGroup.getIpPermissionsEgress());
+				System.out.println("----------------------------------");
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void keyPairList(){
+		// 키페어 목록 조회 요청 생성
+		DescribeKeyPairsRequest describeKeyPairsRequest = new DescribeKeyPairsRequest();
+
+		try {
+			// 키페어 목록 조회
+			DescribeKeyPairsResult keyPairsResult = ec2.describeKeyPairs(describeKeyPairsRequest);
+
+			// 조회 결과 출력
+			for (KeyPairInfo keyPairInfo : keyPairsResult.getKeyPairs()) {
+				System.out.println("Key Pair Name: " + keyPairInfo.getKeyName());
+				System.out.println("Key Pair Fingerprint: " + keyPairInfo.getKeyFingerprint());
 				System.out.println("----------------------------------");
 			}
 
