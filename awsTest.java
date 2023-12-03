@@ -52,6 +52,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import com.amazonaws.services.ec2.model.DeleteKeyPairRequest;
+import com.amazonaws.services.ec2.model.DeregisterImageRequest;
+import com.amazonaws.services.ec2.model.CreateImageRequest;
+import com.amazonaws.services.ec2.model.CreateImageResult;
+import com.amazonaws.services.ec2.model.DescribeImagesRequest;
+import com.amazonaws.services.ec2.model.DescribeImagesResult;
+import com.amazonaws.services.ec2.model.Image;
+import java.util.List;
 public class awsTest {
 
 	static AmazonEC2      ec2;
@@ -95,8 +102,9 @@ public class awsTest {
 			System.out.println("  7. reboot instance              8. list images            ");
 			System.out.println("  9. security group information   10. key pair list         ");
 			System.out.println("  11. make key pair               12. delete key pair       ");
-			System.out.println("                                 98. condor_status          ");
-			System.out.println("                                 99. quit                   ");
+			System.out.println("  13. make images                 14. delete images         ");
+			System.out.println("                                  98. condor_status          ");
+			System.out.println("                                  99. quit                   ");
 			System.out.println("------------------------------------------------------------");
 			
 			System.out.print("Enter an integer: ");
@@ -111,6 +119,7 @@ public class awsTest {
 
 			String instance_id = "";
 			String keyPair_id = "";
+			String ami_Name = "";
 
 			switch(number) {
 			case 1: 
@@ -186,6 +195,26 @@ public class awsTest {
 
 				if(!keyPair_id.isBlank())
 					deleteKeyPair(keyPair_id);
+				break;
+			case 13:
+				System.out.print("Enter instance id: ");
+				if(id_string.hasNext())
+					instance_id = id_string.nextLine();
+
+				System.out.print("Enter Ami Name: ");
+				if(id_string.hasNext())
+					ami_Name = id_string.nextLine();
+
+				if(!instance_id.isBlank() && !ami_Name.isBlank())
+					createImage(instance_id,ami_Name);
+				break;
+			case 14:
+				System.out.print("Enter Ami ID: ");
+				if(id_string.hasNext())
+					ami_Name = id_string.nextLine();
+
+				if(!ami_Name.isBlank())
+					deleteImage(ami_Name);
 				break;
 
 			case 98:
@@ -375,17 +404,26 @@ public class awsTest {
 
 		final AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
 
-		DescribeImagesRequest request = new DescribeImagesRequest();
-		ProfileCredentialsProvider credentialsProvider = new ProfileCredentialsProvider();
+		// DescribeImages 요청 생성 및 필터 추가
+		DescribeImagesRequest describeImagesRequest = new DescribeImagesRequest()
+				.withFilters(
+						new Filter("is-public").withValues("false")
+				);
 
-		request.getFilters().add(new Filter().withName("name").withValues("aws-htcondor-slave"));
-		request.setRequestCredentialsProvider(credentialsProvider);
+		try {
+			// DescribeImages API 호출
+			DescribeImagesResult describeImagesResult = ec2.describeImages(describeImagesRequest);
+			List<Image> images = describeImagesResult.getImages();
 
-		DescribeImagesResult results = ec2.describeImages(request);
-
-		for(Image images :results.getImages()){
-			System.out.printf("[ImageID] %s, [Name] %s, [Owner] %s\n",
-					images.getImageId(), images.getName(), images.getOwnerId());
+			// 출력
+			System.out.println("AMI Images:");
+			for (Image image : images) {
+				System.out.println("Image ID: " + image.getImageId() +
+						", Name: " + image.getName() +
+						", State: " + image.getState());
+			}
+		} catch (Exception e) {
+			System.err.println("Error listing AMI images: " + e.getMessage());
 		}
 
 	}
@@ -509,5 +547,38 @@ public class awsTest {
 			System.err.println("Error deleting key pair: " + e.getMessage());
 		}
 	}
+
+	public static void createImage(String instanceId, String amiName){
+
+		// CreateImage 요청 생성
+		CreateImageRequest createImageRequest = new CreateImageRequest()
+				.withInstanceId(instanceId)
+				.withName(amiName);
+
+		try {
+			// CreateImage API 호출
+			CreateImageResult createImageResult = ec2.createImage(createImageRequest);
+			String amiId = createImageResult.getImageId();
+			System.out.println("AMI created successfully with ID: " + amiId);
+		} catch (Exception e) {
+			System.err.println("Error creating AMI: " + e.getMessage());
+		}
+	}
+
+	public static void deleteImage(String amiId){
+
+		// DeregisterImage 요청 생성
+		DeregisterImageRequest deregisterImageRequest = new DeregisterImageRequest().withImageId(amiId);
+
+		try {
+			// DeregisterImage API 호출
+			ec2.deregisterImage(deregisterImageRequest);
+			System.out.println("AMI deregistered successfully");
+		} catch (Exception e) {
+			System.err.println("Error deregistering AMI: " + e.getMessage());
+		}
+	}
+
+
 }
 	
