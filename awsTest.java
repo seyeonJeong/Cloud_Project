@@ -47,7 +47,11 @@ import com.amazonaws.services.ec2.model.CreateKeyPairResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import com.amazonaws.services.ec2.model.DeleteKeyPairRequest;
 public class awsTest {
 
 	static AmazonEC2      ec2;
@@ -90,7 +94,8 @@ public class awsTest {
 			System.out.println("  5. stop instance                6. create instance        ");
 			System.out.println("  7. reboot instance              8. list images            ");
 			System.out.println("  9. security group information   10. key pair list         ");
-			System.out.println("  11. make key pair               10. key pair list         ");
+			System.out.println("  11. make key pair               12. delete key pair       ");
+			System.out.println("                                 98. condor_status          ");
 			System.out.println("                                 99. quit                   ");
 			System.out.println("------------------------------------------------------------");
 			
@@ -174,8 +179,18 @@ public class awsTest {
 				if(!keyPair_id.isBlank())
 					makeKeyPair(keyPair_id);
 				break;
+			case 12:
+				System.out.print("Enter keypair id: ");
+				if(id_string.hasNext())
+					keyPair_id = id_string.nextLine();
 
+				if(!keyPair_id.isBlank())
+					deleteKeyPair(keyPair_id);
+				break;
 
+			case 98:
+				startCondor();
+				break;
 
 			case 99: 
 				System.out.println("bye!");
@@ -451,6 +466,47 @@ public class awsTest {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+		}
+	}
+
+	public static void startCondor(){
+		try {
+			// condor_status 명령어 실행
+			ProcessBuilder processBuilder = new ProcessBuilder("condor_status");
+
+			// 프로세스 실행 및 출력을 가져오기
+			Process process = processBuilder.start();
+			InputStream inputStream = process.getInputStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+			// condor_status 출력 읽기
+			String line;
+			while ((line = reader.readLine()) != null) {
+				System.out.println(line);
+			}
+
+			// 프로세스 종료 대기
+			int exitCode = process.waitFor();
+			System.out.println("condor_status 실행 종료. 종료 코드: " + exitCode);
+
+		} catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void deleteKeyPair(String keyName){
+		// 키페어 이름 설정
+		String keyPairName = keyName;
+
+		// DeleteKeyPair 요청 생성
+		DeleteKeyPairRequest deleteKeyPairRequest = new DeleteKeyPairRequest().withKeyName(keyPairName);
+
+		try {
+			// DeleteKeyPair API 호출
+			ec2.deleteKeyPair(deleteKeyPairRequest);
+			System.out.println("Key pair deleted successfully");
+		} catch (Exception e) {
+			System.err.println("Error deleting key pair: " + e.getMessage());
 		}
 	}
 }
