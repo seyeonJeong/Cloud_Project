@@ -59,6 +59,11 @@ import com.amazonaws.services.ec2.model.DescribeImagesRequest;
 import com.amazonaws.services.ec2.model.DescribeImagesResult;
 import com.amazonaws.services.ec2.model.Image;
 import java.util.List;
+
+import com.jcraft.jsch.Channel;
+import com.jcraft.jsch.ChannelExec;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
 public class awsTest {
 
 	static AmazonEC2      ec2;
@@ -508,26 +513,40 @@ public class awsTest {
 	}
 
 	public static void startCondor(){
+		// SSH 연결 정보
+		String host = "*****"; // EC2 인스턴스의 IP 주소
+		String username = "*******"; // SSH로 접속할 계정
+		String privateKeyPath = "***"; // SSH 키 파일의 경로
+
 		try {
-			// condor_status 명령어 실행
-			ProcessBuilder processBuilder = new ProcessBuilder("condor_status");
+			// JSch 초기화
+			JSch jsch = new JSch();
+			jsch.addIdentity(privateKeyPath);
 
-			// 프로세스 실행 및 출력을 가져오기
-			Process process = processBuilder.start();
-			InputStream inputStream = process.getInputStream();
-			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+			// 세션 열기
+			Session session = jsch.getSession(username, host, 22);
+			session.setConfig("StrictHostKeyChecking", "no");
+			session.connect();
 
-			// condor_status 출력 읽기
+			// 명령 실행
+			String command = "condor_status"; // 실행할 명령
+			Channel channel = session.openChannel("exec");
+			((ChannelExec) channel).setCommand(command);
+
+			// 명령 실행 결과 읽기
+			InputStream commandOutput = channel.getInputStream();
+			channel.connect();
+
+			BufferedReader reader = new BufferedReader(new InputStreamReader(commandOutput));
 			String line;
 			while ((line = reader.readLine()) != null) {
 				System.out.println(line);
 			}
 
-			// 프로세스 종료 대기
-			int exitCode = process.waitFor();
-			System.out.println("condor_status 실행 종료. 종료 코드: " + exitCode);
-
-		} catch (IOException | InterruptedException e) {
+			// 연결 종료
+			channel.disconnect();
+			session.disconnect();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
